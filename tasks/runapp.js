@@ -11,41 +11,97 @@
 module.exports = function(grunt) {
 
   grunt.registerMultiTask('runapp', 'Run the mixtape node server in a daemon with an environment', function () {
-    var exec = require('child_process').exec,
-    env = this.data.env,
-    cmd = ['NODE_ENV=', env, ' nodemon ./server.js'].join(''),
+
+    var _ = require('underscore'),
+      spawn = require('child_process').spawn,
+      fork = require('child_process').fork;
+
+    var options = _.defaults(this.data.options || {}, {
+      dieWithParent: false
+    });
 
     // keep alive (ctrl-c to stop)
-    done = this.async();
+    var done = this.async();
 
-    var child = exec(
-      cmd,
-      {
-        //Increase the max buffer of stdout, the default is
-        //insufficient for debugging and development.  If the
-        //child process quits for seemingly no reason, this
-        //is probably what killed it.
+    //We're going to die at the end of the current process (grunt task)
+    if (options.dieWithParent) {
+      global.runappciChild = fork('server.js', {
+        env: _.extend(process.env, {NODE_ENV: this.data.env})
+      });
 
-        //Setting the buffer to 50MB
-        maxBuffer: 50000*1024
+      // A helper function to shut down the child.
+      global.runappciChild.shutdown = function () {
+        // Get rid of the exit listener since this is a planned exit.
+        grunt.log.error('Terminating the server.');
+        this.kill("SIGTERM");
+      };
 
-      }, 
-      function (error, stdout, stderr) {
-        console.log('stdout: ' + stdout);
-        console.log('stderr: ' + stderr);
-        if (error !== null) {
-          console.log('Grunt NPM Exec Error: ' + error);
+      // SIGTERM AND SIGINT will trigger the exit event.
+      process.once("SIGTERM", function () {
+        process.exit(0);
+      });
+
+      process.once("SIGINT", function () {
+        process.exit(0);
+      });
+
+      // And the exit event shuts down the child.
+      process.once("exit", function () {
+        global.runappciChild.shutdown();
+      });
+
+      //Preserve the exception when something goes wrong
+      process.once("uncaughtException", function (error) {
+        // If this was the last of the listeners, then shut down the child and rethrow.
+        if (process.listeners("uncaughtException").length === 0) {
+          global.runappciChild.shutdown();
+          throw error;
         }
-      }
-    );
+      });
 
-    child.stdout.on('data', function (data) {
-      console.log('%s', data);
-    });
+      //Wait for the server to tell us that it's ready to serve requests.
+      global.runappciChild.on('message', function(data) {
+        if (data.status === 'ready') {
+          grunt.log.ok('Server ready.');
+          done();
+        }
+      });
 
-    child.stderr.on('data', function (data) {
-      console.log('%s', data);
-    });
+    //We're going to keep the grunt task from finishing until a SIGTERM or SIGINT is received
+    } else {
+      grunt.log.writeln('Spawning the nodemon process');
+
+      var nodemon = spawn('nodemon', ['server.js'], {
+        env: _.extend(process.env, {NODE_ENV: this.data.env})
+      });
+
+      //STDOUT Pipe
+      nodemon.stdout.on('data', function (data) {
+        console.log('%s', data);
+      });
+
+      //STDERR Pipe
+      nodemon.stderr.on('data', function (data) {
+        console.log('%s', data);
+      });
+
+      nodemon.on('close', function (code) {
+        console.log('The nodemon process exited with code ' + code);
+        done();
+      });
+
+      process.once("SIGTERM", function () {
+        grunt.log.writeln('');
+        grunt.log.error('The Grunt runapp task caught SIGTERM.  Shutting down.');
+        grunt.log.writeln('');
+      });
+
+      process.once("SIGINT", function () {
+        grunt.log.writeln('');
+        grunt.log.error('The Grunt runapp task caught SIGINT. Shutting down.');
+        grunt.log.writeln('');
+      });
+    } 
   });
 
 };

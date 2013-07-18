@@ -17,32 +17,15 @@ Once the plugin has been installed, it may be enabled inside your Gruntfile with
 grunt.loadNpmTasks('grunt-mixtape-run-app');
 ```
 
-## The "mixtape_run_app" task
+## The "runapp" task
 
 ### Overview
 In your project's Gruntfile, add a section named `runapp` to the data object passed into `grunt.initConfig()`.
 
-```js
-grunt.initConfig({
-  runapp: {
-    development : {
-      env: 'development'
-    },
+* `env` - The NODE_ENV to pass to the server
 
-    debug : {
-      env: 'debug'
-    },
-
-    production : {
-      env: 'production'
-    },
-
-    test : {
-      env: 'test'
-    }
-  },
-})
-```
+#### Options
+* `dieWithParent` [true|false] - Keeps the server running until the parent process exits (end of Grunt tasks).  Useful for e2e testing. 
 
 ### Usage Examples
 
@@ -61,6 +44,9 @@ runapp: {
   },
 
   test : {
+    options: {
+      dieWithParent: true
+    }
     env: 'test'
   }
 }

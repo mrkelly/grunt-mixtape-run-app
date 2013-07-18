@@ -18,13 +18,13 @@ module.exports = function(grunt) {
         'tasks/*.js'
       ],
       options: {
-        jshintrc: '.jshintrc',
-      },
+        jshintrc: '.jshintrc'
+      }
     },
 
     // Before generating any new files, remove any previously-created files.
     clean: {
-      tests: ['tmp'],
+      tests: ['tmp']
     }
 
   });
