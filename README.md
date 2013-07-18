@@ -22,10 +22,10 @@ grunt.loadNpmTasks('grunt-mixtape-run-app');
 ### Overview
 In your project's Gruntfile, add a section named `runapp` to the data object passed into `grunt.initConfig()`.
 
-* `env` - The NODE_ENV to pass to the server
+* `env: [String]` The NODE_ENV to pass to the server
 
 #### Options
-* `dieWithParent` [true|false] - Keeps the server running until the parent process exits (end of Grunt tasks).  Useful for e2e testing. 
+* `dieWithParent: [true|false]` Keeps the server running until the parent process exits (end of Grunt tasks).  Useful for e2e testing. 
 
 ### Usage Examples
 
@@ -46,7 +46,7 @@ runapp: {
   test : {
     options: {
       dieWithParent: true
-    }
+    },
     env: 'test'
   }
 }
