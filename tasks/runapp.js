@@ -10,13 +10,27 @@
 
 module.exports = function(grunt) {
 
-  grunt.registerMultiTask('runapp', 'Run the mixtape node server in a daemon with an environment', function () {
+  grunt.registerMultiTask('runapp', 'Run the node server in a daemon with an environment', function () {
 
     var _ = require('underscore'),
       spawn = require('child_process').spawn,
-      fork = require('child_process').fork;
+      fork = require('child_process').fork,
+      fs = require('fs');
+
+    function findAppScript() {
+      var appScript = null;
+      try {
+        appScript = JSON.parse(fs.readFileSync('./package.json').toString()).main;
+        if (appScript !== undefined) {
+          return appScript;
+        }
+      } catch (e) {}
+
+      return null;
+    }
 
     var options = _.defaults(this.data.options || {}, {
+      main: findAppScript(),
       dieWithParent: false
     });
 
@@ -25,7 +39,7 @@ module.exports = function(grunt) {
 
     //We're going to die at the end of the current process (grunt task)
     if (options.dieWithParent) {
-      global.runappciChild = fork('server.js', {
+      global.runappciChild = fork(options.main, {
         env: _.extend(process.env, {NODE_ENV: this.data.env})
       });
 
@@ -71,7 +85,7 @@ module.exports = function(grunt) {
     } else {
       grunt.log.writeln('Spawning the nodemon process');
 
-      var nodemon = spawn('nodemon', ['server.js'], {
+      var nodemon = spawn('nodemon', [options.main], {
         env: _.extend(process.env, {NODE_ENV: this.data.env})
       });
 
