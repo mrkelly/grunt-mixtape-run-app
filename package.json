@@ -1,7 +1,7 @@
 {
   "name": "grunt-mixtape-run-app",
   "description": "A Grunt task to to run the server in the mixtape boilerplate",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "homepage": "https://github.com/mrkelly/grunt-mixtape-run-app",
   "author": {
     "name": "Michael Kelly",
